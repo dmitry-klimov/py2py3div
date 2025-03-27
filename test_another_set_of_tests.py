@@ -16,9 +16,7 @@ from py2py3div_c import div_wrapper as py2py3div_c
 from py2py3div_cython import div_wrapper as py2py3div_cython
 
 # Create a mapping of implementation names to their respective functions
-IMPLEMENTATIONS = {
-    'Built-In': lambda x, y: x / y,
-} if PY_VERSION == 2 else {}
+IMPLEMENTATIONS = {'Built-In': lambda x, y: x / y,} if PY_VERSION == 2 else {}
 IMPLEMENTATIONS.update({
     "Python": py2py3div_python,
     "C": py2py3div_c,
