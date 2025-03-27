@@ -1,7 +1,17 @@
-/py2_division_benchmark.json
-./build/
-./build/*
-*.pyd
+# Specific project files
+py2_division_benchmark.json
 py2py3div_cython/py2py3div_cython.c
-/.venv311/
-/.idea/
+
+# Build artifacts
+build/
+*.pyd
+
+# Environment and IDE
+.venv311/
+.idea/
+
+# Common Python patterns you might want to add
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
