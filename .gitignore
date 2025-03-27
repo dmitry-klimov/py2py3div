@@ -1,0 +1,7 @@
+/py2_division_benchmark.json
+./build/
+./build/*
+*.pyd
+py2py3div_cython/py2py3div_cython.c
+/.venv311/
+/.idea/
