@@ -17,6 +17,7 @@ from py2py3div_cython import div_wrapper as py2py3div_cython
 
 # Create a mapping of implementation names to their respective functions
 IMPLEMENTATIONS = {
+    'Built-In': lambda x, y: x / y,
     "Python": py2py3div_python,
     "C": py2py3div_c,
     "Cython": py2py3div_cython,
@@ -173,13 +174,13 @@ def test_performance(implementation_name, div_wrapper, large_num1, large_num2, i
     start_time = time.time()
     for _ in range(iterations):
         div_wrapper(large_num1, large_num2)
-    wrapper_end_time = time.time()
+    python_start_time = wrapper_end_time = time.time()
     div_wrapper_elapsed = wrapper_end_time - start_time
 
     for _ in range(iterations):
         large_num1 / large_num2
     python_end_time = time.time()
-    python_elapsed = python_end_time - wrapper_end_time
+    python_elapsed = python_end_time - python_start_time
 
     assert div_wrapper_elapsed <= python_elapsed * max_time_diff, (
         "div_wrapper is significantly slower. div_wrapper: {}, Python: {}".format(

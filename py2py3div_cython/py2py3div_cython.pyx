@@ -46,25 +46,21 @@ cdef inline object try_division_method(object a, object b, str method_name):
 
 cdef inline object try_object_division(object a, object b):
     """Try object division using Python's special methods"""
-    # Try primary methods first
-    result = try_division_method(a, "__div__", b)
-    if result is not NotImplemented:
-        return result
-
-    result = try_division_method(b, "__rdiv__", a)
-    if result is not NotImplemented:
-        return result
-
-    # Try fallback methods
-    result = try_division_method(b, "__div__", a)
-    if result is not NotImplemented:
-        return result
-
-    result = try_division_method(a, "__rdiv__", b)
-    if result is not NotImplemented:
-        return result
+    if hasattr(a, '__div__') and not isinstance(a, (int, long, float, complex)):
+        return a.__div__(b)
+    if hasattr(b, '__rdiv__') and not isinstance(b, (int, long, float, complex)):
+        return b.__rdiv__(a)
 
     return NotImplemented
+
+# Helper to convert to appropriate Python type
+cdef inline object convert_to_py_int(int64_t result):
+    """Convert result to Python int if it fits, otherwise long"""
+    # Python 2.7: int has limited range, use int if the result fits
+    if -2147483648 <= result <= 2147483647:  # Range for 32-bit int
+        return int(result)
+    else:
+        return long(result)
 
 cpdef object div_wrapper_cython(object a, object b):
     """
@@ -80,7 +76,9 @@ cpdef object div_wrapper_cython(object a, object b):
     if isinstance(a, (int, long)) and isinstance(b, (int, long)):
         try:
             # Try fast integer division
-            return fast_int_div(PyLong_AsLongLong(a), PyLong_AsLongLong(b))
+            result = fast_int_div(PyLong_AsLongLong(a), PyLong_AsLongLong(b))
+            # Convert to appropriate Python type (int if possible, long if necessary)
+            return convert_to_py_int(result)
         except OverflowError:
             # Fall back to Python's big integer handling
             return fast_bigint_div(a, b)
