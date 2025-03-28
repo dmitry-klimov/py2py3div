@@ -5,6 +5,7 @@ py2py3div_cython/py2py3div_cython.c
 # Build artifacts
 build/
 *.pyd
+*.pyc
 
 # Environment and IDE
 .venv311/
