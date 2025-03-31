@@ -26,6 +26,12 @@ import numpy as np
 
 try:
 	import matplotlib.pyplot as plt
+	# Define default Matplotlib style
+	try:
+		plt.style.use('ggplot')  # Use a built-in style for consistency
+	except AttributeError:
+		print("Style not found. Using default Matplotlib style.")
+
 	noPics = False
 except ImportError:
 	noPics = True
@@ -372,17 +378,10 @@ def print_results_table(size, results_by_type, data_types, py2_data=None):
 		print(row_str)
 
 
-def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
+def plot_benchmark_results(results_by_type, data_types, py2_data=None):
 	"""
     Enhanced version of the benchmark results plot with improved label handling and accuracy.
     """
-	try:
-		import matplotlib.pyplot as plt
-		import numpy as np
-	except ImportError:
-		print("Matplotlib is required for plotting. Install with 'pip install matplotlib'")
-		return
-
 	colors = {
 		'built_in': '#1f77b4',  # blue
 		'python_impl': '#ff7f0e',  # orange
@@ -391,14 +390,7 @@ def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
 		'python_2': '#9467bd'  # purple
 	}
 
-	dpi = 100
 	plt.figure(figsize=(12, 8), dpi=100)
-	# plt.subplots_adjust(top=0.9, bottom=0.15, left=0.15, right=0.9)
-
-	try:
-		plt.style.use('ggplot')
-	except AttributeError:
-		print("Style not found. Using default Matplotlib style.")
 
 	x = np.arange(len(data_types))
 	bar_width = 0.15
@@ -470,28 +462,20 @@ def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
 	plt.legend(title='Implementation', loc='upper left', fontsize=10, frameon=True)
 	plt.grid(visible=True, linestyle='--', alpha=0.6)
 
-	plt.tight_layout(pad=2.0)
-	plt.savefig('plots/division_benchmark_{}.png'.format('py2' if PY2 else 'py3'), dpi=dpi, bbox_inches='tight')
+	plt.tight_layout()
+	plt.savefig('plots/division_benchmark_{}.png'.format('py2' if PY2 else 'py3'), dpi=300, bbox_inches='tight')
 	plt.show()
 
-def plot_relative_performance(size, results_by_type, data_types, py2_data=None):
+	# # Auto-scale the y-axis
+	# max_value = max(max(vals) for vals in relative_performance.values() if vals)
+	# plt.ylim(0, max_value * 1.2)  # Add 20% headroom
+
+
+def plot_relative_performance(results_by_type, data_types, py2_data=None):
 	"""
 	Generate relative performance comparison plots across all methods.
 	Shows each method's performance relative to the built-in division.
 	"""
-	try:
-		import matplotlib.pyplot as plt
-		import numpy as np
-	except ImportError:
-		print("Matplotlib is required for plotting. Install with 'pip install matplotlib'")
-		return
-
-	# Define default Matplotlib style
-	try:
-		plt.style.use('ggplot')  # Use a built-in style for consistency
-	except AttributeError:
-		print("Style not found. Using default Matplotlib style.")
-
 	# Define colors for different implementations
 	colors = {
 		'python_impl': '#ff7f0e',  # orange
@@ -590,7 +574,7 @@ def plot_relative_performance(size, results_by_type, data_types, py2_data=None):
 	plt.ylabel('Relative Performance (higher is better)', fontsize=12)
 	plt.title('Division Methods: Performance Relative to Built-in ({})'.format('py2' if PY2 else 'py3'), fontsize=16, fontweight='bold')
 	plt.xticks(x, [dtype.capitalize() for dtype in data_types], fontsize=10)
-	plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=total_methods)
+	plt.legend(title='Implementation', loc='upper left', fontsize=10, frameon=True)
 	plt.grid(True, linestyle='--', alpha=0.7, axis='y')
 
 	# Auto-scale the y-axis
@@ -637,8 +621,8 @@ def main():
 
 	print_results_table(size, results_by_types, data_types, py2_data)
 	if not noPics:
-		plot_benchmark_results(size, results_by_types, data_types, py2_data)
-		plot_relative_performance(size, results_by_types, data_types, py2_data)
+		plot_benchmark_results(results_by_types, data_types, py2_data)
+		plot_relative_performance(results_by_types, data_types, py2_data)
 
 if __name__ == "__main__":
 	main()
