@@ -54,10 +54,16 @@ PY2_DATA_FILE = "py2_division_benchmark.json"
 
 if PY2:
 	timer_impl = time.clock
+	# timer_impl = time.time
 else:
-	timer_impl = time.process_time
+	# timer_impl = time.process_time
+	timer_impl = time.perf_counter
 
-builtin_division = lambda a, b: a / b
+def div_wrapper(a, b):
+	"""Pure Python implementation of division"""
+	return a / b
+
+builtin_division = div_wrapper
 
 
 def run_benchmark(func, size, data_type, num_runs=5):
@@ -87,7 +93,7 @@ def run_benchmark(func, size, data_type, num_runs=5):
 		for n, d in zip(numerators, denominators):
 			func(n, d)
 		end_time = timer_impl()
-		times.append((end_time - start_time))
+		times.append((end_time - start_time) * 1000000000.0)
 
 	try:
 		mean_time = np.mean(times)
@@ -96,7 +102,7 @@ def run_benchmark(func, size, data_type, num_runs=5):
 		mean_time = sum(times) / len(times)
 		stdev = math.sqrt(sum((t - mean_time) ** 2 for t in times) / len(times)) if len(times) > 1 else 0
 
-	return {'mean': mean_time, 'stdev': stdev}
+	return {'mean': mean_time / float(size), 'stdev': stdev / float(size)}
 
 def dump_py2_data(results_by_type, data_types):
 	"""Dump Python 2 benchmarking data to a file."""
@@ -190,7 +196,7 @@ def print_results_table(size, results_by_type, data_types, py2_data=None):
 		colors.append(Fore.WHITE)  # Default color for size
 
 		# Format values with standard deviations
-		bi_val = "{:.4f}±{:.4f}".format(built_in_mean, built_in_stdev)
+		bi_val = "{:.2f}±{:.2f}".format(built_in_mean, built_in_stdev)
 
 		# Add built-in as reference (not competing)
 		values.append(bi_val)
@@ -204,7 +210,7 @@ def print_results_table(size, results_by_type, data_types, py2_data=None):
 		if 'python_impl' in result:
 			python_impl_mean = result['python_impl']['mean']
 			python_impl_stdev = result['python_impl']['stdev']
-			py_val = "{:.4f}±{:.4f}".format(python_impl_mean, python_impl_stdev)
+			py_val = "{:.2f}±{:.2f}".format(python_impl_mean, python_impl_stdev)
 			python_impl_ratio = built_in_mean / python_impl_mean if python_impl_mean > 0 else float('inf')
 
 			values.append(py_val)
@@ -230,7 +236,7 @@ def print_results_table(size, results_by_type, data_types, py2_data=None):
 			c_ext_mean = result['c_extension']['mean']
 			c_ext_stdev = result['c_extension']['stdev']
 			c_ext_ratio = built_in_mean / c_ext_mean if c_ext_mean > 0 else float('inf')
-			c_ext_val = "{:.4f}±{:.4f}".format(c_ext_mean, c_ext_stdev)
+			c_ext_val = "{:.2f}±{:.2f}".format(c_ext_mean, c_ext_stdev)
 			competing_methods.append(('c_extension', c_ext_mean))
 			competing_times.append(c_ext_mean)
 
@@ -252,7 +258,7 @@ def print_results_table(size, results_by_type, data_types, py2_data=None):
 			cython_ext_mean = result['cython_extension']['mean']
 			cython_ext_stdev = result['cython_extension']['stdev']
 			cython_ext_ratio = built_in_mean / cython_ext_mean if cython_ext_mean > 0 else float('inf')
-			cython_ext_val = "{:.4f}±{:.4f}".format(cython_ext_mean, cython_ext_stdev)
+			cython_ext_val = "{:.2f}±{:.2f}".format(cython_ext_mean, cython_ext_stdev)
 			competing_methods.append(('cython_extension', cython_ext_mean))
 			competing_times.append(cython_ext_mean)
 
@@ -444,7 +450,7 @@ def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
 	def autolabel(heights, positions):
 		for x_pos, h in zip(positions, heights):
 			if h > 0:
-				label = '{:.4f}'.format(h)  # Two decimals for large values
+				label = '{:.2f}'.format(h)  # Two decimals for large values
 
 				plt.text(
 					x_pos, h + (max(heights) * 0.01), label, fontsize=8,
@@ -459,7 +465,7 @@ def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
 
 	plt.title('Division Benchmark Results ({})'.format('PY2' if PY2 else 'PY3'), fontsize=16, fontweight='bold')
 	plt.xlabel('Data Type', fontsize=12, labelpad=15)
-	plt.ylabel('Execution Time (seconds)', fontsize=12, labelpad=15)
+	plt.ylabel('Execution Time (ns)', fontsize=12, labelpad=15)
 	plt.xticks(x, [dtype.capitalize() for dtype in data_types], fontsize=10, rotation=25)
 	plt.legend(title='Implementation', loc='upper left', fontsize=10, frameon=True)
 	plt.grid(visible=True, linestyle='--', alpha=0.6)
@@ -612,13 +618,13 @@ def main():
 		functions['cython_extension'] = cy_division.div_wrapper
 
 	data_types = ['int', 'float', 'mixed', 'huge']
-	size = 10000
-	num_runs_list = [10000, 10000, 2500, 500]
+	sizes = [100000, 100000, 3000, 1000]
+	num_runs = 100
 
 	results_by_types = []
 	for data_type in data_types:
 		type_results = {}
-		for function_desc, num_runs in zip(functions.items(), num_runs_list):
+		for function_desc, size in zip(functions.items(), sizes):
 			name, func = function_desc
 			type_results[name] = run_benchmark(func, size, data_type, num_runs)
 		results_by_types.append(type_results)
