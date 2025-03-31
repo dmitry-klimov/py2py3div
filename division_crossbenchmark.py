@@ -87,7 +87,7 @@ def run_benchmark(func, size, data_type, num_runs=5):
 		for n, d in zip(numerators, denominators):
 			func(n, d)
 		end_time = timer_impl()
-		times.append((end_time - start_time)*1000.0)
+		times.append((end_time - start_time))
 
 	try:
 		mean_time = np.mean(times)
@@ -385,16 +385,9 @@ def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
 		'python_2': '#9467bd'  # purple
 	}
 
-	max_allowable_pixels = 2 ** 16 - 1
-	width_inches = 14
-	height_inches = 8
-	dpi = 120
-
-	while (width_inches * dpi > max_allowable_pixels or height_inches * dpi > max_allowable_pixels):
-		dpi -= 10
-
-	plt.figure(figsize=(width_inches, height_inches), dpi=dpi)
-	plt.subplots_adjust(top=0.9, bottom=0.15, left=0.15, right=0.9)
+	dpi = 100
+	plt.figure(figsize=(12, 8), dpi=100)
+	# plt.subplots_adjust(top=0.9, bottom=0.15, left=0.15, right=0.9)
 
 	try:
 		plt.style.use('ggplot')
@@ -466,7 +459,7 @@ def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
 
 	plt.title('Division Benchmark Results ({})'.format('PY2' if PY2 else 'PY3'), fontsize=16, fontweight='bold')
 	plt.xlabel('Data Type', fontsize=12, labelpad=15)
-	plt.ylabel('Execution Time (ms)', fontsize=12, labelpad=15)
+	plt.ylabel('Execution Time (seconds)', fontsize=12, labelpad=15)
 	plt.xticks(x, [dtype.capitalize() for dtype in data_types], fontsize=10, rotation=25)
 	plt.legend(title='Implementation', loc='upper left', fontsize=10, frameon=True)
 	plt.grid(visible=True, linestyle='--', alpha=0.6)
