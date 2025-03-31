@@ -22,6 +22,8 @@ import math
 import json
 import os
 
+import numpy as np
+
 try:
 	import matplotlib.pyplot as plt
 	noPics = False
@@ -41,6 +43,7 @@ except ImportError:
 	has_cython_extension = False
 
 from py2py3div_python import div_wrapper as python_division
+#from py2py3div_python import div_wrapper as builtin_division
 
 # Check Python version
 PY2 = sys.version_info[0] == 2
@@ -48,6 +51,11 @@ PY3 = sys.version_info[0] == 3
 
 # File for storing Python 2 benchmark data
 PY2_DATA_FILE = "py2_division_benchmark.json"
+
+if PY2:
+	timer_impl = time.clock
+else:
+	timer_impl = time.process_time
 
 builtin_division = lambda a, b: a / b
 
@@ -75,13 +83,18 @@ def run_benchmark(func, size, data_type, num_runs=5):
 
 	times = []
 	for _ in range(num_runs):
-		start_time = time.time()
-		[func(n, d) for n, d in zip(numerators, denominators)]
-		end_time = time.time()
-		times.append(end_time - start_time)
+		start_time = timer_impl()
+		for n, d in zip(numerators, denominators):
+			func(n, d)
+		end_time = timer_impl()
+		times.append((end_time - start_time)*1000.0)
 
-	mean_time = sum(times) / len(times)
-	stdev = math.sqrt(sum((t - mean_time) ** 2 for t in times) / len(times)) if len(times) > 1 else 0
+	try:
+		mean_time = np.mean(times)
+		stdev = np.std(times, ddof=0)  # Population standard deviation
+	except:
+		mean_time = sum(times) / len(times)
+		stdev = math.sqrt(sum((t - mean_time) ** 2 for t in times) / len(times)) if len(times) > 1 else 0
 
 	return {'mean': mean_time, 'stdev': stdev}
 
@@ -262,7 +275,7 @@ def print_results_table(size, results_by_type, data_types, py2_data=None):
 			py2_mean = py2_result['mean']
 			py2_stdev = py2_result['stdev']
 			py2_ratio = built_in_mean / py2_mean if py2_mean > 0 else float('inf')
-			py2_val = "{:.4f}±{:.4f}".format(py2_mean, py2_stdev)
+			py2_val = "{:.3f}±{:.3f}".format(py2_mean, py2_stdev)
 
 			# Add to the competing methods
 			competing_methods.append(('python_2', py2_mean))
@@ -352,10 +365,11 @@ def print_results_table(size, results_by_type, data_types, py2_data=None):
 		row_str = " | ".join(parts)
 		print(row_str)
 
+
 def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
 	"""
-	Enhanced version of the benchmark results plot with improved styling and exterior appearance.
-	"""
+    Enhanced version of the benchmark results plot with improved label handling and accuracy.
+    """
 	try:
 		import matplotlib.pyplot as plt
 		import numpy as np
@@ -363,7 +377,6 @@ def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
 		print("Matplotlib is required for plotting. Install with 'pip install matplotlib'")
 		return
 
-	# Define colors for different implementations
 	colors = {
 		'built_in': '#1f77b4',  # blue
 		'python_impl': '#ff7f0e',  # orange
@@ -372,93 +385,94 @@ def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
 		'python_2': '#9467bd'  # purple
 	}
 
-	# Set up the figure with improved size, DPI, and grid style
-	plt.figure(figsize=(14, 8), dpi=120)
+	max_allowable_pixels = 2 ** 16 - 1
+	width_inches = 14
+	height_inches = 8
+	dpi = 120
 
-	# Use Matplotlib's ggplot style as a fallback
+	while (width_inches * dpi > max_allowable_pixels or height_inches * dpi > max_allowable_pixels):
+		dpi -= 10
+
+	plt.figure(figsize=(width_inches, height_inches), dpi=dpi)
+	plt.subplots_adjust(top=0.9, bottom=0.15, left=0.15, right=0.9)
+
 	try:
-		plt.style.use('ggplot')  # Use a built-in style
+		plt.style.use('ggplot')
 	except AttributeError:
 		print("Style not found. Using default Matplotlib style.")
 
 	x = np.arange(len(data_types))
 	bar_width = 0.15
-	opacity = 0.9  # Better opacity for visibility
+	opacity = 0.9
 
-	# Track which implementations are available
-	available_impls = set()
-
-	# Extract data in a consistent way
 	built_in_times = []
 	python_impl_times = []
 	c_extension_times = []
 	cython_extension_times = []
 	python_2_times = []
 
-	# Extract means from results to ensure consistency
 	for i, result in enumerate(results_by_type):
 		built_in_times.append(result['built_in']['mean'] if 'built_in' in result else 0)
 		python_impl_times.append(result['python_impl']['mean'] if 'python_impl' in result else 0)
 		c_extension_times.append(result['c_extension']['mean'] if 'c_extension' in result else 0)
 		cython_extension_times.append(result['cython_extension']['mean'] if 'cython_extension' in result else 0)
 
-		# Add Python 2 data from JSON if available
 		if py2_data and i < len(py2_data['results_by_type']):
 			python_2_data = py2_data['results_by_type'][i]
 			python_2_times.append(python_2_data['built_in']['mean'] if 'built_in' in python_2_data else 0)
 		else:
 			python_2_times.append(0)
 
-	# Bar offsets for positioning
-	bar_offset = -bar_width * 2  # Adjust offsets depending on the number of methods
+	bar_offset = -bar_width * 2
 
-	# Plot each implementation with color-coding
 	if built_in_times:
 		plt.bar(x + bar_offset, built_in_times, bar_width, alpha=opacity, color=colors['built_in'], label='Built-in')
 		bar_offset += bar_width
 
 	if python_impl_times:
-		plt.bar(x + bar_offset, python_impl_times, bar_width, alpha=opacity, color=colors['python_impl'], label='Python-impl')
+		plt.bar(x + bar_offset, python_impl_times, bar_width, alpha=opacity, color=colors['python_impl'],
+				label='Python-impl')
 		bar_offset += bar_width
 
 	if c_extension_times:
-		plt.bar(x + bar_offset, c_extension_times, bar_width, alpha=opacity, color=colors['c_extension'], label='C-Extension')
+		plt.bar(x + bar_offset, c_extension_times, bar_width, alpha=opacity, color=colors['c_extension'],
+				label='C-Extension')
 		bar_offset += bar_width
 
 	if cython_extension_times:
-		plt.bar(x + bar_offset, cython_extension_times, bar_width, alpha=opacity, color=colors['cython_extension'], label='Cython-Extension')
+		plt.bar(x + bar_offset, cython_extension_times, bar_width, alpha=opacity, color=colors['cython_extension'],
+				label='Cython-Extension')
 		bar_offset += bar_width
 
 	if python_2_times:
 		plt.bar(x + bar_offset, python_2_times, bar_width, alpha=opacity, color=colors['python_2'], label='Python 2')
 
-	# Add value labels to bars
+	# Add value labels to bars with dynamic decimal formatting
 	def autolabel(heights, positions):
 		for x_pos, h in zip(positions, heights):
 			if h > 0:
-				plt.text(
-					x_pos, h + 0.001, '{:.4f}'.format(h), fontsize=8,
-					ha='center', va='bottom', color='black', alpha=0.8,
-						   )
+				label = '{:.4f}'.format(h)  # Two decimals for large values
 
-	# Annotate each set of bars
+				plt.text(
+					x_pos, h + (max(heights) * 0.01), label, fontsize=8,
+					ha='center', va='bottom', color='black', alpha=0.8
+				)
+
 	autolabel(built_in_times, x - 0.3)
 	autolabel(python_impl_times, x - 0.15)
 	autolabel(c_extension_times, x + 0.0)
 	autolabel(cython_extension_times, x + 0.15)
 	autolabel(python_2_times, x + 0.3)
 
-	# Chart labels and formatting
 	plt.title('Division Benchmark Results ({})'.format('PY2' if PY2 else 'PY3'), fontsize=16, fontweight='bold')
-	plt.xlabel('Data Type', fontsize=12)
-	plt.ylabel('Execution Time (seconds)', fontsize=12)
-	plt.xticks(x, [dtype.capitalize() for dtype in data_types], fontsize=10)
+	plt.xlabel('Data Type', fontsize=12, labelpad=15)
+	plt.ylabel('Execution Time (ms)', fontsize=12, labelpad=15)
+	plt.xticks(x, [dtype.capitalize() for dtype in data_types], fontsize=10, rotation=25)
 	plt.legend(title='Implementation', loc='upper left', fontsize=10, frameon=True)
 	plt.grid(visible=True, linestyle='--', alpha=0.6)
 
-	# Optimize layout and save the figure
 	plt.tight_layout(pad=2.0)
-	plt.savefig('plots/division_benchmark_{}.png'.format('py2' if PY2 else 'py3'), dpi=300, bbox_inches='tight')
+	plt.savefig('plots/division_benchmark_{}.png'.format('py2' if PY2 else 'py3'), dpi=dpi, bbox_inches='tight')
 	plt.show()
 
 def plot_relative_performance(size, results_by_type, data_types, py2_data=None):
@@ -606,7 +620,7 @@ def main():
 
 	data_types = ['int', 'float', 'mixed', 'huge']
 	size = 10000
-	num_runs_list = [10000, 10000, 1000, 100]
+	num_runs_list = [10000, 10000, 2500, 500]
 
 	results_by_types = []
 	for data_type in data_types:
