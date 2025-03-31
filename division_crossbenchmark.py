@@ -48,8 +48,8 @@ try:
 except ImportError:
 	has_cython_extension = False
 
-from py2py3div_python import div_wrapper as python_division
-#from py2py3div_python import div_wrapper as builtin_division
+from py2py3div_python import builtin_division, div_wrapper as python_division
+# from py2py3div_python import div_wrapper as builtin_division
 
 # Check Python version
 PY2 = sys.version_info[0] == 2
@@ -59,17 +59,11 @@ PY3 = sys.version_info[0] == 3
 PY2_DATA_FILE = "py2_division_benchmark.json"
 
 if PY2:
-	timer_impl = time.clock
 	# timer_impl = time.time
+	timer_impl = time.clock
 else:
 	# timer_impl = time.process_time
 	timer_impl = time.perf_counter
-
-def div_wrapper(a, b):
-	"""Pure Python implementation of division"""
-	return a / b
-
-builtin_division = div_wrapper
 
 
 def run_benchmark(func, size, data_type, num_runs=5):
@@ -133,7 +127,7 @@ def load_py2_data():
 		print("Failed to load benchmark data: {}".format(str(e)))
 		return None
 
-def print_results_table(size, results_by_type, data_types, py2_data=None):
+def print_results_table(results_by_type, data_types, py2_data=None):
 	"""Print benchmark results in a well-formatted table with color-coding and Python 2 data from JSON"""
 	try:
 		# For Python 2 and 3 compatibility with colorama
@@ -187,7 +181,6 @@ def print_results_table(size, results_by_type, data_types, py2_data=None):
 
 		# Check if built-in is available
 		if 'built_in' not in result:
-			print("No built-in results for size {}".format(size))
 			continue
 
 		built_in_mean = result['built_in']['mean']
@@ -602,7 +595,7 @@ def main():
 		functions['cython_extension'] = cy_division.div_wrapper
 
 	data_types = ['int', 'float', 'mixed', 'huge']
-	sizes = [100000, 100000, 3000, 1000]
+	sizes = [1000000, 1000000, 3000, 1000]
 	num_runs = 100
 
 	results_by_types = []
@@ -619,7 +612,7 @@ def main():
 	elif PY2:
 		dump_py2_data(results_by_types, data_types)
 
-	print_results_table(size, results_by_types, data_types, py2_data)
+	print_results_table(results_by_types, data_types, py2_data)
 	if not noPics:
 		plot_benchmark_results(results_by_types, data_types, py2_data)
 		plot_relative_performance(results_by_types, data_types, py2_data)

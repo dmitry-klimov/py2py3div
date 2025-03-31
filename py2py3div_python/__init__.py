@@ -23,6 +23,9 @@ else:
     def div_wrapper(*_):
         raise ImportError("Could not load Pure Python implementation")
 
+def builtin_division(a, b):
+    return a / b
+
 
 # Make sure to explicitly export the function
-__all__ = ['div_wrapper']
+__all__ = ['div_wrapper', 'builtin_division']
