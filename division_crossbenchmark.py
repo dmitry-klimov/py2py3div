@@ -458,7 +458,7 @@ def plot_benchmark_results(size, results_by_type, data_types, py2_data=None):
 
 	# Optimize layout and save the figure
 	plt.tight_layout(pad=2.0)
-	plt.savefig('division_benchmark_{}.png'.format('py2' if PY2 else 'py3'), dpi=300, bbox_inches='tight')
+	plt.savefig('plots/division_benchmark_{}.png'.format('py2' if PY2 else 'py3'), dpi=300, bbox_inches='tight')
 	plt.show()
 
 def plot_relative_performance(size, results_by_type, data_types, py2_data=None):
@@ -586,7 +586,7 @@ def plot_relative_performance(size, results_by_type, data_types, py2_data=None):
 
 	# Tight layout for better spacing
 	plt.tight_layout()
-	plt.savefig('division_relative_performance_comparison_{}.png'.format('py2' if PY2 else 'py3'), dpi=300)
+	plt.savefig('plots/division_relative_performance_comparison_{}.png'.format('py2' if PY2 else 'py3'), dpi=300)
 	plt.show()
 
 def main():
